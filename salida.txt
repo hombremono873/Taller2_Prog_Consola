@@ -1,0 +1,17 @@
+.
+..
+.git
+Taller_One.pdf
+bono.c
+comandos.sh
+emergencia.c
+este.c
+input.txt
+ls
+output
+pgr
+prueba.c
+prueba2.c
+salida.txt
+test_directory
+wish.c

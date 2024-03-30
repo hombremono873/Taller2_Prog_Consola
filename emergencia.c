@@ -1,26 +1,38 @@
+/*  
+    Programa: Ejecución de lote de comandos
+    Autores:  [Laidy Castaño Castaño], [Yuly Yecenia Albear Romo], [Omar Alberto Torres]
+    Profesor: [Dany Alexandro Munera ]
+    Curso:    [Sistemas operativos y laboratorio]
+    Fecha:    [Abril 10 del 2024]
+*/
 /********************************Insercción de librería standard***********************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <fcntl.h>
 
 /*********************************Definición de constantes del programa ****************************/
-#define MAXIMA_LONGITUD_PATH 200
-#define MAXIMA_LONGITUD_COMANDO 200
-#define MAXIMOS_ARGUMENTOS 100
-//#define MAXIMA_LONGITUD_COMANDOS 200
-#define MAXIMA_LONGITUD_LINEA 200
-//#define MAXIMOS_ARGUMENTOS 100
+
+#define MAXIMA_LONGITUD_PATH 512
+#define MAXIMA_LONGITUD_COMANDO 512
+#define MAXIMOS_ARGUMENTOS 256
+#define MAXIMA_LONGITUD_LINEA 1024
 #define EXEC_SUCCESS(status) ((status) == 0) 
-#define MAX_LINE_LENGTH 1024
-/****************************************Variables globales ***************************************/
+
+/**************************************** Variables globales ***************************************/
+
 char **rutas; 
 int nume_rutas = 0;
 
+/*********************************** Definición prototipo de funciones *****************************/
+
 FILE* getFile(int argc, char *argv[]);
 char** almacenarArgumentos(char *token, char *line_copy) ;
+
 void prompt();
 void parsear_comando(char *comando, char **args);
 void ejecutar_comando_externo(char **args);
@@ -34,6 +46,9 @@ void procesoTwo(char *comando);
 void  proceso(char * comando);
 int contiene_ampersand(const char *cadena);
 
+/***************************************** Función principal ***************************************/
+
+/** La funcion main controla el flujo del program y ciclo del proceso interactivo ******************/
 int main(int argc, char *argv[]) {
     inicializar_rutas();
     char comando[MAXIMA_LONGITUD_COMANDO];
@@ -53,97 +68,19 @@ int main(int argc, char *argv[]) {
     }
     return 0;
 }
-/********************************************Proceso por lotes***************************************/
 
-/*FILE* getFile(int argc, char *argv[]) {
+/******************************** Procesos por lotes **********************************************/
+/**La funcion ProcesoTres responsable del proesamiendo del lote de comandos*/
+void procesoTres(int argc, char *argv[]){
     if (argc != 2) {
         fprintf(stderr, "An error has occurred\n");
         exit(1);
     }
-    FILE *file = fopen(argv[1], "r");
-    if (file == NULL) {
-        fprintf(stderr, "An error has occurred\n");
-        exit(1); 
-    }
-
-    return file;
-}
-
-char** almacenarArgumentos(char *token, char *line_copy) {
-    char **args = NULL;
-    int arg_count = 0;
-    while (token != NULL) {
-        args = realloc(args, (arg_count + 1) * sizeof(char *));
-        if (args == NULL) {
-            fprintf(stderr, "An error has occurred\n");
-            exit(1);
-        }
-        args[arg_count] = strdup(token);
-        if (args[arg_count] == NULL) {
-            fprintf(stderr, "An error has occurred\n");
-            exit(1);
-        }
-        token = strsep(&line_copy, " ");   //Funciona muy bien usando strsept()
-        arg_count++;
-    }
-
-    return args;
-}
-
-void procesoTres(int argc, char *argv[]) {
-    char line[MAXIMA_LONGITUD_LINEA];
-    FILE *file = getFile(argc, argv);
-    while (fgets(line, sizeof(line), file)) {
-        line[strcspn(line, "\n")] = 0;
-        char *line_copy = strdup(line);
-        if (line_copy == NULL) {
-            fprintf(stderr, "An error has occurred\n");
-            exit(1);
-        }
-        char command[MAXIMA_LONGITUD_LINEA];
-        char **args = NULL;
-        int arg_count = 0;
-        char *token = strsep(&line_copy, " ");
-        strcpy(command, token);
-        token = strsep(&line_copy, " ");
-        args = almacenarArgumentos(token, line_copy);
-        for (int i = 0; i < arg_count; i++) {
-            free(args[i]);
-        }
-        free(args);
-        pid_t pid = fork();
-        if (pid == -1) {
-            fprintf(stderr, "An error has occurred\n");
-            exit(1);
-        }
-        if (pid == 0) {
-            execvp(command, args);
-            fprintf(stderr, "An error has occurred\n");
-            exit(1);
-        }
-
-        int status;
-        if (wait(&status) != -1) {  // Verificar si el proceso hijo ha terminado correctamente
-            fclose(file);
-            continue;
-        } else {
-            fprintf(stderr, "An error has occurred\n");
-            exit(1);
-        }
-    }
-}
-*/
-/*****************************************************************************************************/
-void procesoTres(int argc, char *argv[]){
-    if (argc != 2) {
-        fprintf(stderr, "Uso: %s <archivo_de_comandos>\n", argv[0]);
-        exit(EXIT_FAILURE);
-    }
 
     FILE *comandos_file = fopen(argv[1], "r");
     if (comandos_file == NULL) {
-        perror("Error al abrir el archivo de comandos");
-        exit(EXIT_FAILURE);
+        perror("An error has occurred\n");
+        exit(1);
     }
 
     char *linea = NULL;
@@ -158,13 +95,13 @@ void procesoTres(int argc, char *argv[]){
 
         if (pid < 0) {
             perror("Error en fork");
-            exit(EXIT_FAILURE);
+            exit(1);
         } else if (pid == 0) {
             // Proceso hijo
             char *linea_copia = strdup(linea); // Copiar la línea de comandos
             if (linea_copia == NULL) {
-                perror("Error al copiar la línea de comandos");
-                exit(EXIT_FAILURE);
+                perror("An error has occurred\n");
+                exit(1);
             }
 
             char *token;
@@ -181,8 +118,8 @@ void procesoTres(int argc, char *argv[]){
 
             // Ejecutar el comando utilizando execvp
             if (execvp(args[0], args) == -1) {
-                perror("Error al ejecutar el comando");
-                exit(EXIT_FAILURE);
+                perror("An error has occurred\n");
+                exit(1);
             }
         } else {
             // Proceso padre
@@ -194,10 +131,11 @@ void procesoTres(int argc, char *argv[]){
     free(linea);
     fclose(comandos_file);
 }
+/**La función prompt() muestra simbolo */
 void prompt() {
     printf("wish> ");
 }
-
+/**Parsea comandos en el proceso ciclico wish**********/
 void parsear_comando(char *comando, char **args) {
     char *token;
     int i = 0;
@@ -208,7 +146,7 @@ void parsear_comando(char *comando, char **args) {
     }
     args[i] = NULL;
 }
-
+/**Ejecuta comandos externos*/
 void ejecutar_comando_externo(char **args) {
     pid_t pid;
     int status;
@@ -235,6 +173,7 @@ void ejecutar_comando_externo(char **args) {
     fprintf(stderr, "An error has occurred\n");
 }
 
+/**Ejecuta comandos internos*************/
 void ejecutar_comando_interno(char **args) {
     if (strcmp(args[0], "exit") == 0) {
         exit(0);
@@ -270,7 +209,7 @@ void ejecutar_comando_interno(char **args) {
        // printf("Comando interno ejecutado: %s\n", args[0]);
     }
 }
-
+/***Inicializa ruta para busqueda de comandos************/
 void inicializar_rutas() {
     rutas = malloc(MAXIMA_LONGITUD_PATH * sizeof(char*));
     rutas[0] = strdup("/bin/");
@@ -279,7 +218,7 @@ void inicializar_rutas() {
     rutas[3] = strdup("/path/to/pwd/directory/");
     nume_rutas = 4;
 }
-
+/**Opera sobre el proceso de ejecucion de comandos internos y externos******/
 void procesoOne(char *comando) {
     char *args[MAXIMOS_ARGUMENTOS];
     
@@ -295,7 +234,7 @@ void procesoOne(char *comando) {
         ejecutar_comando_externo(args);
     }
 }
-/**SEgunda parte*/
+/**Se parsea comandos para operaciones en segundo plano*****************/
 void parsear_comandos(char *comando, char **args, int *segundoplano) {
     char *token;
     int i = 0;
@@ -313,7 +252,7 @@ void parsear_comandos(char *comando, char **args, int *segundoplano) {
     }
     args[i] = NULL;
 }
-
+/**Ejecuta comandos en segundo plano*******/
 void ejecutar_comando(char **args, int segundoplano) {
     pid_t pid;
     int status;
@@ -332,7 +271,7 @@ void ejecutar_comando(char **args, int segundoplano) {
         }
     }
 }
-
+/***Funcion que controla flujo para ejecucion de funciones en segundo plano****/
 void procesoTwo(char *comando) {
     char *args[MAXIMOS_ARGUMENTOS];
     int segundoplano = 0;
@@ -348,12 +287,16 @@ void procesoTwo(char *comando) {
         segundoplano = 0;
     }
 }
+
+/**Si se detecta salida*******/
 void  proceso(char * comando){
      if (strcmp(comando, "exit\n") == 0) {
         exit(0);
      }
      procesoTwo(comando);
 }
+
+/**La deteccion del simbolo & es fundamental para el contexto y ir a ejecucion comandos segundo plano*/
 int contiene_ampersand(const char *cadena) {
     return strchr(cadena, '&') != NULL;
 }
