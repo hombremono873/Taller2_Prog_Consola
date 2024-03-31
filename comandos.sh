@@ -16,6 +16,7 @@ ps
 top -n 1
 who
 users
-uname -a
 exit
+
+
 

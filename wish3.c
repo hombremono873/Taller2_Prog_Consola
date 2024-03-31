@@ -107,6 +107,68 @@ void procesoTres(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
         } else if (pid == 0) {
             // Proceso hijo
+            // Dividir la línea en tokens
+            char *args[10]; // Por ejemplo, puedes cambiar este tamaño según tus necesidades
+            char *token = strtok(linea, " ");
+            int i = 0;
+            while (token != NULL) {
+                args[i++] = token;
+                token = strtok(NULL, " ");
+            }
+            args[i] = NULL; // Asegurarse de que el último elemento sea NULL para execv
+
+            // Ejecutar el comando utilizando execv
+            if (execv(args[0], args) == -1) {
+                perror("Error executing command");
+                exit(EXIT_FAILURE);
+            }
+            exit(EXIT_SUCCESS); // Salir del proceso hijo después de ejecutar el comando
+        } else {
+            // Proceso padre
+            // Esperar a que el hijo termine
+            wait(NULL);
+        }
+    }
+
+    // Liberar memoria y cerrar el archivo
+    free(linea);
+    fclose(comandos_file);
+
+    // Salir del programa después de procesar todas las líneas del archivo
+    exit(EXIT_SUCCESS);
+}
+
+void procesoTres1(int argc, char *argv[]) {
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <commands_file>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    FILE *comandos_file = fopen(argv[1], "r");
+    if (comandos_file == NULL) {
+        perror("Error opening commands file");
+        exit(EXIT_FAILURE);
+    }
+
+    char *linea = NULL;
+    size_t longitud_linea = 0;
+
+    // Leer cada línea del archivo de comandos
+    while (getline(&linea, &longitud_linea, comandos_file) != -1) {
+        // Eliminar el carácter de nueva línea, si está presente
+        linea[strcspn(linea, "\n")] = '\0';
+
+        // Salir del bucle si se encuentra el comando "exit"
+        if (strcmp(linea, "exit") == 0) {
+            break;
+        }
+
+        pid_t pid = fork(); // Crear proceso hijo
+        if (pid < 0) {
+            perror("Error en fork");
+            exit(EXIT_FAILURE);
+        } else if (pid == 0) {
+            // Proceso hijo
             // Ejecutar el comando utilizando system
             if (system(linea) == -1) {
                 perror("Error executing command");
